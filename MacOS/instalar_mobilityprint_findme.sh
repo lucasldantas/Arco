@@ -33,15 +33,28 @@ echo "STATUS: Desmontando e limpando arquivos temporários..."
 hdiutil detach "$MOUNT_POINT" -quiet
 rm -f "$DMG_PATH"
 
-# 2. Configuração (Igual ao anterior)
-APP_BIN="/Applications/PaperCut Mobility Print Client/PaperCut Mobility Print Client.app/Contents/MacOS/mobility-print-client"
+# 2. Configuração
+# Ajustado conforme a imagem: o binário agora fica na raiz da pasta e se chama pc-mobility-print-client
+APP_BIN="/Applications/PaperCut Mobility Print Client/pc-mobility-print-client"
+
 if [ -f "$APP_BIN" ]; then
     echo "STATUS: Vinculando ao Cloud..."
+    # Executa o binário com o token
     "$APP_BIN" -url "$CLOUD_CONFIG_URL" &
+    
+    echo "STATUS: Aguardando 30s para propagação das impressoras..."
     sleep 30
 else
-    echo "ERRO: Aplicativo não encontrado em $APP_BIN"
-    exit 1
+    echo "ERRO: Binário não encontrado em $APP_BIN"
+    # Tenta uma busca automática caso a versão mude o nome da pasta novamente
+    echo "STATUS: Tentando localizar binário alternativo..."
+    APP_BIN=$(find "/Applications/PaperCut Mobility Print Client" -name "pc-mobility-print-client" | head -n 1)
+    if [ -n "$APP_BIN" ]; then
+        "$APP_BIN" -url "$CLOUD_CONFIG_URL" &
+        sleep 30
+    else
+        exit 1
+    fi
 fi
 
 # 3. Limpeza de Impressoras
