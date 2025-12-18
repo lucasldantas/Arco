@@ -62,17 +62,29 @@ else
     fi
 fi
 
-# 3. Limpeza de Impressoras
-echo "STATUS: Validando FINDME e limpando legadas..."
-if lpstat -a | grep -i "PRINT-ARCO-FINDME" > /dev/null; then
+# 3. Validação e Limpeza
+echo "STATUS: Validando presença da FINDME..."
+
+# O comando lpstat -v lista os dispositivos. 
+# Usamos um grep mais simples para pegar qualquer variação de "PRINT-ARCO-FINDME"
+if lpstat -v | grep -i "PRINT-ARCO-FINDME" > /dev/null; then
+    echo "SUCESSO: Impressora FINDME detectada no sistema!"
+    
+    echo "STATUS: Iniciando remoção das impressoras legadas..."
+    # Obtém a lista de todas as filas de impressão atuais
     INSTALLED_PRINTERS=$(lpstat -a | awk '{print $1}')
+
     for PRINTER in "${TARGET_PRINTERS[@]}"; do
+        # Verifica se a impressora da lista de remoção existe no Mac
         if echo "$INSTALLED_PRINTERS" | grep -q "$PRINTER"; then
             echo "REMOVENDO: $PRINTER"
             sudo lpadmin -x "$PRINTER"
+        else
+            echo "IGNORADO: $PRINTER não encontrada (já removida ou inexistente)."
         fi
     done
-    echo "SUCESSO: Processo concluído."
+    echo "PROCESSO FINALIZADO: Configuração aplicada e limpeza concluída."
 else
-    echo "AVISO: Impressora FINDME não apareceu a tempo. Limpeza abortada."
+    echo "ERRO: A impressora FINDME não foi detectada pelo CUPS após 45s."
+    echo "DICA: Verifique se o Token Cloud é válido para este ambiente."
 fi
