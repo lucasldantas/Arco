@@ -34,25 +34,30 @@ hdiutil detach "$MOUNT_POINT" -quiet
 rm -f "$DMG_PATH"
 
 # 2. Configuração
-# Ajustado conforme a imagem: o binário agora fica na raiz da pasta e se chama pc-mobility-print-client
-APP_BIN="/Applications/PaperCut Mobility Print Client/pc-mobility-print-client"
+# Definimos a base da instalação
+BASE_DIR="/Applications/PaperCut Mobility Print Client"
+echo "STATUS: Localizando o binário de execução..."
+LATEST_VERSION_BIN=$(ls -d "$BASE_DIR"/v*/mobility-print-client 2>/dev/null | tail -n 1)
 
-if [ -f "$APP_BIN" ]; then
-    echo "STATUS: Vinculando ao Cloud..."
-    # Executa o binário com o token
-    "$APP_BIN" -url "$CLOUD_CONFIG_URL" &
+if [ -f "$LATEST_VERSION_BIN" ]; then
+    echo "SUCESSO: Binário encontrado em: $LATEST_VERSION_BIN"
+    echo "STATUS: Vinculando ao Cloud com o Token..."
     
-    echo "STATUS: Aguardando 30s para propagação das impressoras..."
-    sleep 30
+    # Executa o binário em background (&) passando a URL do Cloud
+    "$LATEST_VERSION_BIN" -url "$CLOUD_CONFIG_URL" &
+    
+    echo "STATUS: Aguardando 45s para registro no sistema e detecção da FINDME..."
+    sleep 45
 else
-    echo "ERRO: Binário não encontrado em $APP_BIN"
-    # Tenta uma busca automática caso a versão mude o nome da pasta novamente
-    echo "STATUS: Tentando localizar binário alternativo..."
-    APP_BIN=$(find "/Applications/PaperCut Mobility Print Client" -name "pc-mobility-print-client" | head -n 1)
-    if [ -n "$APP_BIN" ]; then
-        "$APP_BIN" -url "$CLOUD_CONFIG_URL" &
-        sleep 30
+    # Caso a estrutura de pastas v* não exista, tenta o binário da raiz como redundância
+    echo "AVISO: Pasta de versão não encontrada, tentando binário da raiz..."
+    ROOT_BIN="$BASE_DIR/pc-mobility-print-client"
+    
+    if [ -f "$ROOT_BIN" ]; then
+        "$ROOT_BIN" -url "$CLOUD_CONFIG_URL" &
+        sleep 45
     else
+        echo "ERRO FATAL: Não foi possível localizar o executável do Mobility Print."
         exit 1
     fi
 fi
