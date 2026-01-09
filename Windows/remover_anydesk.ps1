@@ -1,4 +1,3 @@
-# Busca e remoção exclusiva do AnyDesk
 $app = "AnyDesk"
 Write-Host "Iniciando a busca e remoção do $app..." -ForegroundColor Cyan
 
