@@ -1,11 +1,10 @@
 #!/bin/bash
 
-# --- CONFIGURAÇÕES ---
+# --- CONFIGURAÇÕES ATUALIZADAS ---
 SITE_TOKEN="eyJ1cmwiOiAiaHR0cHM6Ly91c2VhMS0wMTYuc2VudGluZWxvbmUubmV0IiwgInNpdGVfa2V5IjogIjM2ZWM1YmJmNDVhOTRiZjAifQ=="
-# Certifique-se de que esta URL aponte para o .pkg correto da versão target
-INSTALL_URL="https://temp-arco-itops.s3.us-east-1.amazonaws.com/MAC_SentinelOne_v23_4_3.pkg" 
-TARGET_VERSION="23.4.3.7314"
-PKG_PATH="/tmp/SentinelOneAgent.pkg"
+INSTALL_URL="https://temp-arco-itops.s3.us-east-1.amazonaws.com/MACOS_Sentinel-Release-25-3-1-8253_macos_v25_3_1_8253.pkg"
+TARGET_VERSION="25.3.1.8253"
+PKG_PATH="/tmp/sentineloneagent.pkg"
 TOKEN_FILE="/tmp/com.sentinelone.registration-token"
 SCTL="/usr/local/bin/sentinelctl"
 
@@ -20,7 +19,7 @@ NC='\033[0m' # No Color
 
 clear
 echo -e "${CYAN}=========================================================="
-echo -e "           SENTINELONE - HOT FIX $TARGET_VERSION"
+echo -e "            SENTINELONE - HOT FIX $TARGET_VERSION"
 echo -e "==========================================================${NC}"
 
 # --- 1. VERIFICAÇÃO INICIAL ---
@@ -42,7 +41,7 @@ else
     
     if [[ -z "$CURRENT_VERSION" ]]; then CURRENT_VERSION="0.0.0"; fi
 
-    # Comparação de versão (simplificada para strings de versão do macOS)
+    # Comparação de versão
     if [[ "$CURRENT_VERSION" < "$TARGET_VERSION" ]]; then
         echo -e " >> STATUS: Versão desatualizada ($CURRENT_VERSION).${CYAN}"
         NEEDS_UPDATE=true
@@ -65,7 +64,7 @@ if [ "$NEEDS_UPDATE" = true ]; then
     
     if [ $? -eq 0 ]; then
         echo -e "${GRAY} -> Executando instalação silenciosa (v$TARGET_VERSION)...${NC}"
-        # No macOS, o token deve estar no /tmp/com.sentinelone.registration-token ANTES do installer
+        # No macOS, o token deve estar no /tmp antes do installer rodar
         sudo installer -pkg "$PKG_PATH" -target /
         
         echo -e "${GRAY} -> Aguardando inicialização dos serviços...${NC}"
@@ -83,7 +82,6 @@ if [ "$NEEDS_FIX" = true ]; then
     echo -e "\n${WHITE}[3/4] Aplicando comandos de reparo...${NC}"
     if [ -f "$SCTL" ]; then
         echo -e "${GRAY} -> Vinculando Token e forçando conexão...${NC}"
-        # macOS utiliza set registration-token para vincular
         sudo "$SCTL" management token set "$SITE_TOKEN"
         sudo "$SCTL" control start
         sleep 5
