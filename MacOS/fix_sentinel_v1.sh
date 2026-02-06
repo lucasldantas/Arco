@@ -30,7 +30,7 @@ trap cleanup EXIT
 
 clear
 echo -e "${CYAN}=========================================================="
-echo -e "           SENTINELONE - HOT FIX $TARGET_VERSION"
+echo -e "           SENTINELONE - MAC FIX $TARGET_VERSION"
 echo -e "==========================================================${NC}"
 
 # --- 1. VERIFICAÇÃO ---
@@ -53,13 +53,13 @@ if [[ -f "$SCTL" ]]; then
 fi
 
 # --- 2. DOWNLOAD ---
-status "${WHITE}[2/4] Baixando instalador...${NC}"
+status "${WHITE}[2/4] Preparando instalador...${NC}"
 DATE=$(date '+%y%m%d%H%M')
 TEMP_DIR="/tmp/S1-$DATE"
 mkdir -p "$TEMP_DIR"
 cd "$TEMP_DIR"
 
-# Token para instalação limpa
+# Token para o instalador
 echo "$SITE_TOKEN" > "/tmp/com.sentinelone.registration-token"
 
 if ! curl -L --fail -o "$FILENAME" "$INSTALL_URL"; then
@@ -67,37 +67,47 @@ if ! curl -L --fail -o "$FILENAME" "$INSTALL_URL"; then
     exit 1
 fi
 
-# --- 3. INSTALAÇÃO OU UPGRADE ---
-status "${WHITE}[3/4] Iniciando processo de escrita em disco...${NC}"
+# --- 3. EXECUÇÃO ---
+status "${WHITE}[3/4] Aplicando instalação/upgrade...${NC}"
 
 if [ "$IS_UPGRADE" = true ]; then
     status "Executando upgrade via sentinelctl..."
-    # O comando upgrade-pkg é o método oficial para quando o agente já existe
-    if sudo "$SCTL" upgrade-pkg "$FILENAME"; then
-        status "${GREEN}✅ Comando de upgrade aceito.${NC}"
-    else
-        status "${RED}❌ Falha no upgrade-pkg. Tentando forçar via installer...${NC}"
+    # Tenta o upgrade oficial
+    if ! sudo "$SCTL" upgrade-pkg "$FILENAME"; then
+        status "${YELLOW}Upgrade-pkg falhou ou bloqueado. Tentando installer padrão...${NC}"
         sudo /usr/sbin/installer -pkg "$FILENAME" -target / || true
     fi
 else
-    status "Executando instalação limpa via installer..."
+    status "Executando instalação limpa..."
     sudo /usr/sbin/installer -pkg "$FILENAME" -target /
 fi
 
-status "Aguardando estabilização (30s)..."
+status "Aguardando inicialização (30s)..."
 sleep 30
 
-# --- 4. VALIDAÇÃO ---
+# --- 4. VALIDAÇÃO E CORREÇÃO DE COMANDOS ---
 status "${WHITE}[4/4] Validação Final${NC}"
+
 if [[ -f "$SCTL" ]]; then
     FINAL_OP=$($SCTL status | grep -i "Agent is operational" || true)
-    if [[ -n "$FINAL_OP" ]]; then
+    
+    if [[ -z "$FINAL_OP" ]]; then
+        status "Agente não operacional. Forçando ativação..."
+        # Sintaxe corrigida para versões novas (v23+)
+        sudo "$SCTL" management token set "$SITE_TOKEN" || sudo "$SCTL" set registration-token "$SITE_TOKEN" || true
+        
+        status "Recarregando componentes..."
+        sudo "$SCTL" unprotect || true # Tenta desproteger caso esteja travado
+        sudo "$SCTL" load -v || true
+        sleep 10
+    fi
+
+    # Verificação Final após tentativa de correção
+    if $SCTL status | grep -i "Agent is operational" > /dev/null; then
         echo -e "${GREEN}RESULTADO: SUCESSO. Agente operacional.${NC}"
     else
-        status "Agente não operacional. Tentando bind final..."
-        sudo "$SCTL" management token set "$SITE_TOKEN" || true
-        sudo "$SCTL" control start || true
-        status "Verifique o painel em instantes."
+        echo -e "${RED}RESULTADO: ATENÇÃO. Agente instalado mas requer ativação manual ou via console.${NC}"
+        $SCTL status | head -n 5
     fi
 fi
 
