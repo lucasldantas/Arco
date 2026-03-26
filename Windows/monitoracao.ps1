@@ -115,7 +115,7 @@ try {
 } catch { }
 
 # 7. AGENTES E BUSCA DETALHADA DE PATCHES
-$zscaler = if(Get-Process "ZSAI" -ErrorAction SilentlyContinue){"Sim"}else{"Não"}
+$zscaler = if(Get-Process "ZSAService" -ErrorAction SilentlyContinue){"Sim"}else{"Não"}
 $sentinel = if(Get-Service "SentinelAgent" -ErrorAction SilentlyContinue){"Sim"}else{"Não"}
 $jcAgent = if(Test-Path "C:\Program Files\JumpCloud"){"Sim"}else{"Não"}
 
