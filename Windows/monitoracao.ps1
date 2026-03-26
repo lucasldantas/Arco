@@ -33,7 +33,7 @@ try {
         $netRaw = net user $lastLoggedUser
         $dateLine = $netRaw | Where-Object { $_ -match '\d{1,2}/\d{1,2}/\d{2,4}' } | Select-Object -First 1
         if ($dateLine -match '(\d{1,2}/\d{1,2}/\d{2,4}\s+\d{1,2}:\d{2}:\d{2})') {
-            $passwordExpiration = [DateTime]::Parse($matches[1]).AddDays(90).ToString("dd/MM/yyyy")
+            $passwordExpiration = [DateTime]::Parse($matches[1]).AddDays(120).ToString("dd/MM/yyyy")
         } else { $passwordExpiration = "N/A" }
     } else { $passwordExpiration = "N/A" }
 } catch { $lastLoggedUser = "Erro"; $passwordExpiration = "Erro" }
